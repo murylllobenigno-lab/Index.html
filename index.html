@@ -36,6 +36,11 @@ let jogadasAlvo = {};
 let analises = {};
 let recolhido = false;
 
+let zonasData = {}; // 👈 FALTAVA ISSO
+
+let zonaQuenteNome, zonaQuenteQtd;
+let zonaFriaNome, zonaFriaGiros;
+let numeroQuenteNome, numeroQuenteQtd;
 // =========================
 // FUNÇÕES GERAIS
 // =========================
@@ -88,32 +93,36 @@ function atualizarGrade() {
 // =========================
 // ABA INICIO
 // =========================
-const abaInicio = createElement('section', 'p-4', `
+const abaInicio = createElement('section','p-4');
+abaInicio.innerHTML = `
+<div class="space-y-4">
 
-  <div class="grid gap-4">    <a href="https://blaze.bet.br/pt/games/roleta-brasileira" class="bg-gray-900 rounded-xl overflow-hidden block">  
-  <img src="https://assets.sitecontents.net/slots/133/desktopImage-Roleta-Brasileira-1-min-1696619712031.jpg" class="w-full" alt="Mercado 1">  
-</a>  
+  <div class="border-2 border-red-600 rounded-xl p-4 text-center">
+    <div class="text-red-400 font-bold text-lg">🔥 ZONA QUENTE ATIVA 🔥</div>
+    <div id="zonaQuenteNome" class="text-xl mt-2">---</div>
+    <div class="text-gray-400 text-sm">
+      Ocorrências: <span id="zonaQuenteQtd">0</span> / 12
+    </div>
+  </div>
 
-<a href="https://blaze.bet.br/pt/games/mega-fire-blaze-roleta-brasileira-live" class="bg-gray-900 rounded-xl overflow-hidden block">  
-  <img src="https://d205654a3b2af1b75209-275b861a8577e42fdaf34f4c14f5e708.ssl.cf3.rackcdn.com/rYvNQwPAz/OAdaOIKgmOeKLr.jpg" class="w-full" alt="Mercado 1">  
-</a>  
+  <div class="border-2 border-blue-600 rounded-xl p-4 text-center">
+    <div class="text-blue-400 font-bold text-lg">❄️ ZONA FRIA ❄️</div>
+    <div id="zonaFriaNome" class="text-xl mt-2">---</div>
+    <div class="text-gray-400 text-sm">
+      Última ocorrência: <span id="zonaFriaGiros">---</span> giros
+    </div>
+  </div>
 
-<a href="https://blaze.bet.br/pt/games/xxxtreme-lightning-roulette" class="bg-gray-900 rounded-xl overflow-hidden block">  
-  <img src="https://extensaogba.com/static/media/game_opt3.466c693c57751cdf7598.png" class="w-full" alt="Mercado 3">  
-</a>  
+  <div class="border-2 border-yellow-500 rounded-xl p-4 text-center">
+    <div class="text-yellow-400 font-bold text-lg">🎯 NÚMERO QUENTE 🎯</div>
+    <div id="numeroQuenteNome" class="text-2xl font-bold mt-2">---</div>
+    <div class="text-gray-400 text-sm">
+      <span id="numeroQuenteQtd">0</span>x nos últimos 12
+    </div>
+  </div>
 
-<a href="https://blaze.bet.br/pt/games/immersive-roulette" class="bg-gray-900 rounded-xl overflow-hidden block">  
-  <img src="https://extensaogba.com/static/media/game_opt2.f113af9d61f7ac95a900.png" class="w-full" alt="Mercado 4">  
-</a>
-
-  <a href="https://blaze.bet.br/pt/games/roleta-ao-vivo" class="bg-gray-900 rounded-xl overflow-hidden block">  
-      <img src="https://rtcbrasil.com.br/settle/banner/roleta-ao-vivo.png" class="w-full" alt="Mercado 1">  
-    </a>  <a href="https://blaze.bet.br/pt/games/speed-auto-roulette" class="bg-gray-900 rounded-xl overflow-hidden block">  
-  <img src="https://extensaogba.com/static/media/game_opt4.1e6e1f3b7d5b6a651447.png" class="w-full" alt="Mercado 3">  
-</a>
-
-  </div>    
-`);  
+</div>
+`;
 // =========================
 // ABA OPERACOES
 // =========================
@@ -191,7 +200,107 @@ const nav = createElement('nav', 'fixed bottom-0 left-0 right-0 bg-gray-900 text
 const btnInicio = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">home</span>Inicio`);
 const btnOperacoes = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">casino</span>Sala de operações`);
 const btnMuryllo = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">star</span>Muryllo`);
+/* =========================
+   ANÁLISE DE ZONAS
+========================= */
+function analisarZonas(){
+  if(!numerosData.length || !zonasData) return null;
 
+  const ultimos12 = numerosData.slice(0,12);
+  let contZonas={}, atrasoZonas={}, contNum={};
+
+  Object.keys(zonasData).forEach(z=>{
+    contZonas[z]=0;
+    atrasoZonas[z]=null;
+  });
+
+  numerosData.forEach((n,i)=>{
+    Object.entries(zonasData).forEach(([z,nums])=>{
+      if(nums.includes(n) && atrasoZonas[z]===null){
+        atrasoZonas[z]=i;
+      }
+    });
+  });
+
+  ultimos12.forEach(n=>{
+    contNum[n]=(contNum[n]||0)+1;
+    Object.entries(zonasData).forEach(([z,nums])=>{
+      if(nums.includes(n)) contZonas[z]++;
+    });
+  });
+
+  const zonaQuente = Object.entries(contZonas)
+    .filter(([_,c])=>c>=3)
+    .sort((a,b)=>b[1]-a[1])[0];
+    
+
+  const zonaFria = Object.entries(atrasoZonas)
+    .sort((a,b)=>b[1]-a[1])[0];
+
+  const numeroQuente = Object.entries(contNum)
+    .filter(([_,c])=>c>=2)
+    .sort((a,b)=>b[1]-a[1])[0]
+    .slice(0, 3);
+
+  return {zonaQuente,zonaFria,numeroQuente};
+}
+
+function atualizarPainelZonas(){
+  const r = analisarZonas();
+  if(!r) return;
+
+  // ZONA QUENTE
+  if(r.zonaQuente){
+    zonaQuenteNome.textContent = r.zonaQuente[0];
+    zonaQuenteQtd.textContent = r.zonaQuente[1];
+  } else {
+    zonaQuenteNome.textContent = '---';
+    zonaQuenteQtd.textContent = '0';
+  }
+
+  // ZONA FRIA
+  if(r.zonaFria){
+    zonaFriaNome.textContent = r.zonaFria[0];
+    zonaFriaGiros.textContent = r.zonaFria[1];
+  } else {
+    zonaFriaNome.textContent = '---';
+    zonaFriaGiros.textContent = '---';
+  }
+
+  // NÚMEROS QUENTES (todos que repetiram 2+ vezes)
+  if(r.numeroQuente){
+    const contNum = {};  
+    numerosData.slice(0,12).forEach(n => {  
+      contNum[n] = (contNum[n]||0) + 1;  
+    });
+
+    const numerosQuentes = Object.entries(contNum)
+      .filter(([_, c]) => c >= 2)
+      .sort((a,b) => b[1]-a[1]);
+
+    if(numerosQuentes.length){
+      numeroQuenteNome.textContent = numerosQuentes.map(n=>n[0]).join(', ');
+      numeroQuenteQtd.textContent = numerosQuentes.map(n=>n[1]).join(', ');
+    } else {
+      numeroQuenteNome.textContent = '---';
+      numeroQuenteQtd.textContent = '0';
+    }
+  } else {
+    numeroQuenteNome.textContent = '---';
+    numeroQuenteQtd.textContent = '0';
+  }
+}
+/* =========================
+   APPEND
+========================= */
+app.append(abaInicio,abaOperacoes,abaMuryllo,nav);
+/* mapear ids */
+zonaQuenteNome=document.getElementById('zonaQuenteNome');
+zonaQuenteQtd=document.getElementById('zonaQuenteQtd');
+zonaFriaNome=document.getElementById('zonaFriaNome');
+zonaFriaGiros=document.getElementById('zonaFriaGiros');
+numeroQuenteNome=document.getElementById('numeroQuenteNome');
+numeroQuenteQtd=document.getElementById('numeroQuenteQtd');
 // =========================
 // FUNCOES ABA
 // =========================
@@ -220,12 +329,12 @@ function atualizarAbas(ativa){
       break;
 
     case 'muryllo':
-      abaMuryllo.classList.remove('hidden');
-      btnMuryllo.classList.add('text-yellow-400');
+  abaMuryllo.classList.remove('hidden');
+  btnMuryllo.classList.add('text-yellow-400');
 
-      iframeArea.classList.remove('hidden'); // 👈 MOSTRA A ROLETA
-      processarAlvo();
-      break;
+  iframeArea.classList.remove('hidden'); // ❌ REMOVE ISSO
+  processarAlvo();
+  break;
   }
 }
 
@@ -329,6 +438,7 @@ carregarUsuarios();
 nav.appendChild(btnInicio);
 nav.appendChild(btnOperacoes);
 nav.appendChild(btnMuryllo);
+
 app.appendChild(abaInicio);
 app.appendChild(abaOperacoes);
 app.appendChild(abaMuryllo);
@@ -343,6 +453,9 @@ atualizarAbas('inicio');
 // =========================
 // CARREGAR JSON DE DADOS
 // =========================
+  fetch('https://murylllobenigno-lab.github.io/Googlefiles/zonas.json')
+.then(r=>r.json())
+.then(d=>{zonasData=d; atualizarPainelZonas();});
 fetch('https://murylllobenigno-lab.github.io/Googlefiles/dados.json')
   .then(r=>r.json())
   .then(dados=>{
@@ -383,8 +496,17 @@ fetch('https://murylllobenigno-lab.github.io/Googlefiles/dados.json')
     if (!dadosPorRoleta[nome]) return;
 
     numerosData = dadosPorRoleta[nome];
-    atualizarGrade(); // atualiza histórico
+atualizarGrade();
+atualizarPainelZonas(); // 👈 ESSENCIAL
   }
+});
+  fetch('https://murylllobenigno-lab.github.io/Googlefiles/roletas.json')
+.then(r=>r.json())
+.then(d=>{
+  dadosPorRoleta=d;
+  roletaAtual=Object.keys(d)[0];
+  numerosData=d[roletaAtual];
+  atualizarPainelZonas();
 });
 </script>
 </body>
