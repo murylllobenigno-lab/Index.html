@@ -20,7 +20,7 @@
     <input id="loginUser" type="text" placeholder="Usuário" class="w-full p-2 mb-3 rounded bg-black border border-gray-700 text-white"/>
     <input id="loginSenha" type="password" placeholder="Senha" class="w-full p-2 mb-3 rounded bg-black border border-gray-700 text-white"/>
     <button onclick="confirmarLogin()" class="w-full bg-yellow-400 text-black font-bold py-2 rounded mb-2">Entrar</button>
-    <button onclick="fecharLogin()" class="absolute top-2 right-2 text-gray-400 hover:text-white">&times;</button>
+    <button onclick="fecharLogin()"></button>
   </div>
 </div>
 
@@ -30,6 +30,8 @@ const app = document.getElementById('app');
 // =========================
 // VARIÁVEIS GLOBAIS
 // =========================
+let dadosPorRoleta = {};
+let roletaAtual = null;
 let usuarios = [];
 let numerosData = [];
 let jogadasAlvo = {};
@@ -161,42 +163,63 @@ const abaMuryllo = createElement('section', 'p-4 hidden', `
 // =========================
 // BOTAO FALAR COM ADM
 // =========================
-  const iframeArea = createElement(
+  <!-- IFRAME ROLETA -->
+const iframeArea = createElement(
   'div',
   'fixed inset-0 pt-36 pb-20 px-2 z-20 hidden'
 );
-
 iframeArea.innerHTML = `
   <div class="w-full h-full rounded-xl overflow-hidden border-2 border-black bg-black">
     <iframe
-      id="roletaFrame"
-      class="w-full h-full border-0 block"
-      src="https://7games.bet.br/pb/live-casino/home/-1/All?categoryName=all"
-      allowfullscreen>
-    </iframe>
+  id="roletaFrame"
+  class="w-full h-full border-0 block"
+  allowfullscreen>
+</iframe>
   </div>
 `;
 
 app.appendChild(iframeArea);
-const roletaBtnWrapper = createElement('div', 'fixed bottom-20 left-0 right-0 px-4 z-10');
+
+const roletaBtnWrapper = createElement(
+  'div',
+  'fixed bottom-20 left-0 right-0 px-4 z-10 hidden'
+);
+
 const roletaBtn = createElement(
   'button',
-  'block w-full bg-green-550 text-center text-white py-3 rounded-lg font-semibold shadow-lg',
+  'block w-full bg-green-600 text-center text-white py-3 rounded-lg font-semibold shadow-lg',
   'ABRIR ROLETA'
 );
 
+// ✅ ABRIR ROLETA
 roletaBtn.onclick = () => {
   const frame = document.getElementById('roletaFrame');
+
   iframeArea.classList.remove('hidden');
+  iframeArea.style.pointerEvents = 'auto';
 
-  frame.src = 'https://7games.bet.br/pb/live-casino/home/-1/All?categoryName=all';
+  // força recarregar a roleta
+  frame.src = '';
+  setTimeout(() => {
+    frame.src = 'https://7games.bet.br/pb/live-casino/home/-1/All?categoryName=all';
+  }, 100);
 };
-roletaBtnWrapper.appendChild(roletaBtn);
 
+// ✅ FECHAR ROLETA
+function fecharIframe() {
+  iframeArea.classList.add('hidden');
+  iframeArea.style.pointerEvents = 'none';
+}
+
+roletaBtnWrapper.appendChild(roletaBtn);
+app.appendChild(roletaBtnWrapper);
 // =========================
 // NAV
 // =========================
-const nav = createElement('nav', 'fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex justify-around py-3 border-t border-gray-700 z-10');
+const nav = createElement(
+  'nav',
+  'fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex justify-around py-3 border-t border-gray-700 z-50'
+);
 const btnInicio = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">home</span>Inicio`);
 const btnOperacoes = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">casino</span>Sala de operações`);
 const btnMuryllo = createElement('button', 'flex flex-col items-center text-sm', `<span class="material-icons">star</span>Muryllo`);
@@ -235,12 +258,13 @@ function analisarZonas(){
     
 
   const zonaFria = Object.entries(atrasoZonas)
-    .sort((a,b)=>b[1]-a[1])[0];
+  .filter(([_,v]) => v !== null)
+  .sort((a,b)=>b[1]-a[1])[0];
 
   const numeroQuente = Object.entries(contNum)
-    .filter(([_,c])=>c>=2)
-    .sort((a,b)=>b[1]-a[1])[0]
-    .slice(0, 3);
+  .filter(([_,c])=>c>=2)
+  .sort((a,b)=>b[1]-a[1])
+  .slice(0,3);
 
   return {zonaQuente,zonaFria,numeroQuente};
 }
@@ -309,8 +333,9 @@ function atualizarAbas(ativa){
   abaOperacoes.classList.add('hidden');
   abaMuryllo.classList.add('hidden');
 
-  iframeArea.classList.add('hidden'); // só esconde
+  // Sempre esconder por padrão
   roletaBtnWrapper.classList.add('hidden');
+  iframeArea.classList.add('hidden');
 
   btnInicio.classList.remove('text-yellow-400');
   btnOperacoes.classList.remove('text-yellow-400');
@@ -332,7 +357,8 @@ function atualizarAbas(ativa){
   abaMuryllo.classList.remove('hidden');
   btnMuryllo.classList.add('text-yellow-400');
 
-  iframeArea.classList.remove('hidden'); // ❌ REMOVE ISSO
+  roletaBtnWrapper.classList.remove('hidden'); // botão aparece só aqui
+
   processarAlvo();
   break;
   }
@@ -467,17 +493,7 @@ fetch('https://murylllobenigno-lab.github.io/Googlefiles/dados.json')
     preencherAnalises(); // 👈 ESSENCIAL
   })
   .catch(err=>console.error("❌ Erro ao carregar JSON:",err));
-  fetch('https://murylllobenigno-lab.github.io/Googlefiles/roletas.json')
-  .then(r => r.json())
-  .then(data => {
-    dadosPorRoleta = data;
-    // inicializa com a primeira roleta
-    roletaAtual = Object.keys(dadosPorRoleta)[0];
-    numerosData = dadosPorRoleta[roletaAtual] || [];
-    atualizarGrade();
-    preencherRoletas(); // função que popula o select
-  })
-  .catch(err => console.error("Erro ao carregar roletas:", err));
+  
   function preencherRoletas() {
   const select = document.getElementById('roletaSelectBottom');
   if (!select) return;
@@ -501,13 +517,16 @@ atualizarPainelZonas(); // 👈 ESSENCIAL
   }
 });
   fetch('https://murylllobenigno-lab.github.io/Googlefiles/roletas.json')
-.then(r=>r.json())
-.then(d=>{
-  dadosPorRoleta=d;
-  roletaAtual=Object.keys(d)[0];
-  numerosData=d[roletaAtual];
-  atualizarPainelZonas();
-});
+  .then(r => r.json())
+  .then(data => {
+    dadosPorRoleta = data;
+    roletaAtual = Object.keys(dadosPorRoleta)[0];
+    numerosData = dadosPorRoleta[roletaAtual] || [];
+    atualizarGrade();
+    atualizarPainelZonas();
+    preencherRoletas();
+  })
+  .catch(err => console.error("Erro ao carregar roletas:", err));
 </script>
 </body>
 </html>
